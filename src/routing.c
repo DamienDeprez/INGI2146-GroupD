@@ -48,18 +48,18 @@ void delete_routing_table(struct routing_table* table){
 
 /** \brief Print in the console the routing table
  *
- * \param routing_table - pointer to the routing table
+ * \param table - pointer to the routing table
  *
  */
 void print_routing_table(struct routing_table* table){
     int i = 0;
     printf("******** Table de routage ********\n");
-    if(routing_table->top == 0 && routing_table->cursor == 0){
+    if(table->top == 0 && table->cursor == 0){
         printf("EMPTY\n");
         return;
     }
-    for(i=0;i<=routing_table->top;i++){
-        struct route r = routing_table->table[i];
+    for(i=0;i<=table->top;i++){
+        struct route r = table->table[i];
         if(r.dst != 0 && r.via != 0){
             print_route(r);
         }
@@ -101,36 +101,36 @@ void add_route(struct routing_table* table, struct route r){
 
 /** \brief Remove an existing route in the routing table
  *
- * \param routing_table - pointer to the routing table
+ * \param table - pointer to the routing table
  * \param dest - destination of the route to remove
  * \return 0 if the route is successfully removed and 1 otherwise
  *
  */
-int remove_route(struct routing_table* routing_table, unsigned short dest){
+int remove_route(struct routing_table* table, unsigned short dest){
     int i = 0;
     int find=0;
     //printf("******** Remove route to %hu ********\n",dest);
-    for(i=0;!find && i<=routing_table->top;i++){
-        find = (routing_table->table[i].dst == dest);
+    for(i=0;!find && i<=table->top;i++){
+        find = (table->table[i].dst == dest);
     }
     i--;
     if(!find){
         return 1;
     }
-    routing_table->table[i].dst=0;
-    routing_table->table[i].via=0;
-    routing_table->table[i].metric=0;
+    table->table[i].dst=0;
+    table->table[i].via=0;
+    table->table[i].metric=0;
     // si le curseur est à la dernière position
-    if (i == routing_table->top)
+    if (i == table->top)
     {
-        routing_table->cursor--;
-        routing_table->top = routing_table->top == 0 ? 0 : routing_table->top-1;
+        table->cursor--;
+        table->top = table->top == 0 ? 0 : table->top-1;
     }
     else
     {
-        if(routing_table->cursor > i)
+        if(table->cursor > i)
         {
-            routing_table->cursor = i;
+            table->cursor = i;
         }
     }
     return 0;
@@ -138,23 +138,23 @@ int remove_route(struct routing_table* routing_table, unsigned short dest){
 
 /** \brief Find a route in the routing table
  *
- * \param  routing_table - pointer to the routing table
+ * \param  table - pointer to the routing table
  * \param dest - destination of the route
  * \return the route if it exist otherwise, the route is all 0
  *
  */
-struct route find_route(struct routing_table* routing_table, unsigned short dest){
+struct route find_route(struct routing_table* table, unsigned short dest){
     int i, find;
     find=0;
-    for(i=0;!find && i<=routing_table->top;i++){
-        find = (routing_table->table[i].dst == dest);
+    for(i=0;!find && i<=table->top;i++){
+        find = (table->table[i].dst == dest);
     }
     //print_route(routing_table->table[i-1]);
     struct route return_route;
     if(find){
-        return_route.dst=routing_table->table[i-1].dst;
-        return_route.via=routing_table->table[i-1].via;
-        return_route.metric=routing_table->table[i-1].metric;
+        return_route.dst=table->table[i-1].dst;
+        return_route.via=table->table[i-1].via;
+        return_route.metric=table->table[i-1].metric;
     }
     else{
         return_route.dst=0;
@@ -166,21 +166,21 @@ struct route find_route(struct routing_table* routing_table, unsigned short dest
 
 /** \brief Change a route in the routing table
  *
- * \param routing_table - pointer to the routing table
+ * \param table - pointer to the routing table
  * \param r - route information to change
  * \param dest - destination of the route to change
  *
  */
-void change_route(struct routing_table* routing_table, struct route r, unsigned short dest){
+void change_route(struct routing_table* table, struct route r, unsigned short dest){
     int i = 0;
     int find = 0;
-    for(i=0;!find && i<=routing_table->top;i++){
-        find = (routing_table->table[i].dst == dest);
+    for(i=0;!find && i<=table->top;i++){
+        find = (table->table[i].dst == dest);
     }
     i--;
     if(find){
-        routing_table->table[i].via = r.via;
-        routing_table->table[i].metric = r.metric;
+        table->table[i].via = r.via;
+        table->table[i].metric = r.metric;
     }
 }
 
@@ -189,9 +189,9 @@ void change_route(struct routing_table* routing_table, struct route r, unsigned 
  *
  * \param table - pointer to the routing table
  * \param msg - message to process
- *
+ * \return the action made (add, update or remove) a route in the routing table
  */
-void update_message (struct routing_table* table, struct message msg){
+int update_message (struct routing_table* table, struct message msg){
     printf("-- update message \tflags - %hu\troute - %hu\tsource - %hu\thop - %hu\n",msg.flags,msg.route,msg.source,msg.hop);
     switch(msg.flags){
     // msg add a route
@@ -204,12 +204,14 @@ void update_message (struct routing_table* table, struct message msg){
             r.via=msg.source;
             r.metric=msg.hop;
             add_route(table,r);
+            return ADD;
         }
         else{
             if(r.metric>msg.hop){
                 r.via=msg.source;
                 r.metric=msg.hop;
                 change_route(table,r,r.dst);
+                return UPDATE;
             }
         }
         break;
@@ -219,7 +221,9 @@ void update_message (struct routing_table* table, struct message msg){
         //r = find_route(table,msg.route);
         //if(r.dst != 0 && r.via != 0 && r.metric != 0){
             remove_route(table,msg.route);
+            return REMOVE;
         //}
         break;
     }
+    return 0;
 }

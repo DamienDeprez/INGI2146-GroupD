@@ -4,6 +4,11 @@
 
 #ifndef ROUTING_H
 #define ROUTING_H
+
+#define ADD 1
+#define UPDATE 2
+#define REMOVE 3
+
 /** \brief route entry in the routing table
  */
 struct route {
@@ -48,5 +53,5 @@ int remove_route(struct routing_table* routing_table, unsigned short dest);
 
 extern struct route find_route(struct routing_table* table, unsigned short dest);
 
-extern void update_message (struct routing_table* table, struct message msg);
+extern int update_message (struct routing_table* table, struct message msg);
 #endif // ROUTING_H
